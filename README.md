@@ -12,7 +12,7 @@ Note:
 So far, *NNICE* only reads MLP and ResNet with dense layers. The input format is also specific but it is described further in the *NN nomenclature* section and can be obtained natively from TensorFlow.
 
 # Requirements
-*NNICE* relies heavily on [EIGEN](https://gitlab.com/libeigen/eigen/-/releases/3.4.0) (3.4.0) for the matrix product and element-wise activation functions. Its input file parser relies on [HDF5](https://github.com/HDFGroup/hdf5) (1.10.5) and [Rapidjson](https://github.com/Tencent/rapidjson) (1.1.0). Versions indicated are the one tested and therefore preconized.
+*NNICE* relies heavily on [EIGEN](https://gitlab.com/libeigen/eigen/-/releases/3.4.0) (3.4.0) for the matrix product and element-wise activation functions. Its input file parser relies on [HDF5](https://github.com/HDFGroup/hdf5) (1.10.5) and [Rapidjson](https://github.com/Tencent/rapidjson) (1.1.0). Versions indicated are the ones tested and therefore preconized.
 
 # Compilation
 *NNICE* only requires five environment variables to be set:
