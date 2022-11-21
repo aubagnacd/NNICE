@@ -1,7 +1,7 @@
 NNICE
 =======
 
-The project *NNICE* (Neural Network Inference in C made Easy) is a simple C++ library that aims at providing neural network inference capabilities without having to go through the cumbersome compilation of usual Machine Learning libraries C++ APIs. It has initially been developed for direct integration in 3D CFD codes. In these codes, the calls to NN often occurs in a constrained environment in term of parallelization. The recipient code being already massively parallelized (usually), the inference method got to be efficient for numerous calls (vectorization is not always possible) in single-threaded CPU conditions (call often occurs in a distributed part of the code).
+The project *NNICE* (Neural Network Inference in C made Easy) is a simple C++ library that aims at providing neural network inference capabilities without having to go through the cumbersome compilation of usual Machine Learning libraries C++ APIs. It has initially been developed for direct integration in 3D CFD codes. In these codes, the calls to NN often occur in a constrained environment in term of parallelization. The recipient code being already massively parallelized (usually), the inference method got to be efficient for numerous calls (vectorization is not always possible) in single-threaded CPU conditions (call often occurs in a distributed part of the code).
 
 Note:
 ```diff
