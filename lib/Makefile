@@ -5,4 +5,3 @@ main:
 
 clean:
 	rm -f libNNICE.a
-	
