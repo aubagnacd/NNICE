@@ -27,7 +27,7 @@ JSON_INC : path to rapidjson heads
 A simple Makefile is provided. *make* will compile the code, generate a test program in the *test* directory and the static library file to link against in the *lib* directory.
 
 # Test
-If the compilation ends without errors, you'll have an executable called *mainProgram* in the *test* directory. Its usage is indicated if you execute it without argument. Expected results can be found in *test/test_results.dat*. NNs are stored in *NNs" directory and input data for each case are hard-coded in *test/data.h* file.
+If the compilation ends without error, you'll have an executable called *mainProgram* in the *test* directory. Its usage is indicated if you execute it without argument. Expected results can be found in *test/test_results.dat*. NNs are stored in *NNs" directory and input data for each case are hard-coded in *test/data.h* file.
 
 You can also modify this test program to check if the NN you generated can be read by *NNICE*. It is highly recommended to do so before running simulations with *NNICE* in your code.
 
@@ -43,8 +43,12 @@ Example of NN read by *NNICE* are given in *test/NNs* directory. The layers' nam
     + bias:0
 + "resblock_layer_prefix2"
   + "resblock_layer_prefix2"
-    + kernel:0
-    + bias:0
+    + hidden_unit_0
+      + kernel:0
+      + bias:0
+    + hidden_unit_1
+      + kernel:0
+      + bias:0
 + "Output_layer_name"
   + "Output_layer_name"
     + kernel:0
@@ -53,11 +57,14 @@ Example of NN read by *NNICE* are given in *test/NNs* directory. The layers' nam
 Other layers will be ignored by *NNICE*
 
 For activation functions, 4 functions are currently available:
+
 |Functions|Keyword|
+| ------------- |:-------------:|
 |Identity|id|
 |ReLU|relu|
 |tanh|tanh|
 |swish|swish|
+
 These keywords are taken from the respective functions in TensorFlow.
 
 # Implementation in code
