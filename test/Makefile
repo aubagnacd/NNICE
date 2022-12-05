@@ -4,8 +4,20 @@ ROOT_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 INC_DIR := $(ROOT_DIR)/../include
 
 CXXFLAG := -DEIGEN_NO_DEBUG -march=native
-INCLUDE := -I$(HDF5_INC) -I$(EIGEN_INC) -I$(JSON_INC) -I$(INC_DIR)
-LIB := -lhdf5
+INCLUDE := -I$(INC_DIR)
+ifneq ($(origin EIGEN_INC),undefined)
+  INCLUDE := -I$(EIGEN_INC) $(INCLUDE)
+endif
+
+ifneq ($(origin JSON_INC),undefined)
+  INCLUDE := -I$(JSON_INC) $(INCLUDE)
+endif
+
+ifneq ($(origin HDF5_INC),undefined)
+  INCLUDE := -I$(HDF5_INC) $(INCLUDE)
+endif
+
+LIB := -lhdf5 -lz
 LFLAG := -L$(HDF5_LIB)
 
 main:

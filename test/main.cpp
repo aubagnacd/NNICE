@@ -12,12 +12,12 @@ int main(int argc, char** argv) {
     string c;
     size_t n_repeat;
     bool show_results = false;
+    std::vector<string> casenames = {"ReLU","tanh","swish"};
     if ((argc > 2)&&(argc < 5)) {
-        std::vector<string> casenames = {"ReLU","tanh","swish"};
         if (std::find(casenames.begin(), casenames.end(), argv[1])!= casenames.end()) {
             c = argv[1];
         } else {
-            cout << "case should be \"ReLU\", \"tanh\" or \"swish\"" << endl;
+            cout << "case should be \"" << casenames[0] << "\", \"" << casenames[1] << "\" or \"" << casenames[2] <<"\"" << endl;
             exit(1);
         }
         //
@@ -63,10 +63,10 @@ int main(int argc, char** argv) {
         // }
     } else {
         cout << "usage - mpirun -np 1 ./mainProgram case n_repeat l_show(optional) n_thread(optional)" << endl;
-        cout << "case : case to test (string : \"ER\", \"CM\" or \"XC\")" << endl;
+        cout << "case : case to test (string : \"" << casenames[0] << "\", \"" << casenames[1] << "\" or \"" << casenames[2] <<"\")" << endl;
         cout << "n_repeat : number of time case should be run (int)" << endl;
         cout << "l_show : write results in console (optional bool, default value : False, \"True\", \"true\" and \"T\" set to True) - forces n_repeat to 1" << endl;
-        cout << "n_thread : (int)" << endl;
+        // cout << "n_thread : (int)" << endl;
         exit(1);
     }
 	auto init = std::chrono::steady_clock::now();
