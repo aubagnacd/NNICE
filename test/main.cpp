@@ -69,8 +69,8 @@ int main(int argc, char** argv) {
         // cout << "n_thread : (int)" << endl;
         exit(1);
     }
-	auto init = std::chrono::steady_clock::now();
 	auto end = std::chrono::steady_clock::now();
+    auto mid = std::chrono::steady_clock::now();
     Inference* net;
     Inference* vect;
     std::vector<std::vector<double>> inputs;
@@ -117,14 +117,17 @@ int main(int argc, char** argv) {
     double* data = new double[input_size];
     double* result;
     size_t output_size = net->n_output_ai;
-    size_t j = 0;
     //
     // Non-vectorized runs with Inference
     //
-    auto start = std::chrono::steady_clock::now();
+    uint j = 0;
+    ulong sum_inf = 0;
+    auto init = std::chrono::steady_clock::now();
     for (size_t i = 0; i < n_repeat*n_cases; i++) {
         for (size_t k = 0; k < input_size; k++) data[k] = inputs[j][k];
+        mid = std::chrono::steady_clock::now();
         result = net->run_ai(data);
+        end = std::chrono::steady_clock::now();
         if (show_results) {
             cout << "results :" << result[0];
             for (size_t ires = 1; ires < output_size; ires++) cout << " - " << result[ires];
@@ -132,18 +135,23 @@ int main(int argc, char** argv) {
         }
         j++;
         if (j == n_cases) j = 0;
+        sum_inf += std::chrono::duration_cast<std::chrono::nanoseconds>(end - mid).count();
     }
     end = std::chrono::steady_clock::now();
-    cout << "time : " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "ms" << endl << endl;
+    sum_inf /= 1000000;
+    cout << "time (total/inference): " << std::chrono::duration_cast<std::chrono::milliseconds>(end - init).count() << "ms / " << sum_inf << "ms" << endl << endl;
     //
     //
     // Non-vectorized runs with VectInference
     //
     j = 0;
-    start = std::chrono::steady_clock::now();
+    sum_inf = 0;
+    init = std::chrono::steady_clock::now();
     for (size_t i = 0; i < n_repeat*n_cases; i++) {
         for (size_t k = 0; k < input_size; k++) data[k] = inputs[j][k];
+        mid = std::chrono::steady_clock::now();
         result = vect->run_ai(data,1);
+        end = std::chrono::steady_clock::now();
         if (show_results) {
             cout << "results :" << result[0];
             for (size_t ires = 1; ires < output_size; ires++) cout << " - " << result[ires];
@@ -151,9 +159,11 @@ int main(int argc, char** argv) {
         }
         j++;
         if (j == n_cases) j = 0;
+        sum_inf += std::chrono::duration_cast<std::chrono::nanoseconds>(end - mid).count();
     }
     end = std::chrono::steady_clock::now();
-    cout << "time : " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "ms" << endl << endl;
+    sum_inf /= 1000000;
+    cout << "time (total/inference): " << std::chrono::duration_cast<std::chrono::milliseconds>(end - init).count() << "ms / " << sum_inf << "ms" << endl << endl;
     delete[] data;
     //
     // Vectorized run
@@ -163,12 +173,13 @@ int main(int argc, char** argv) {
     double* result_vect;
     size_t n_vect_runs = (show_results)? 1 : 5; // hard-coded 5 runs for now
     for (size_t irun = 0; irun < n_vect_runs; irun++) { // First run is longer because of memory allocation --> several runs show actual performances
-        start = std::chrono::steady_clock::now();
+        init = std::chrono::steady_clock::now();
         for (size_t k = 0; k < input_size*n_repeat; k++) {
             for (size_t i = k*n_cases; i < k*n_cases+n_cases;i++) data[i] = inputs[i-k*n_cases][j];
             j++;
             if (j == input_size) j = 0;
         }
+        mid = std::chrono::steady_clock::now();
         result_vect = vect->run_ai(data,n_repeat*n_cases);
         end = std::chrono::steady_clock::now();
         //
@@ -180,7 +191,7 @@ int main(int argc, char** argv) {
             }
         }
         //
-        cout << "time : " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "ms" << endl;
+        cout << "time (total/inference): " << std::chrono::duration_cast<std::chrono::milliseconds>(end - init).count() << "ms / " << std::chrono::duration_cast<std::chrono::milliseconds>(end - mid).count() << "ms"  << endl;
     }
     delete[] data;
     //
