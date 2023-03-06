@@ -6,7 +6,7 @@ authors:
   orcid: "https://orcid.org/0000-0003-3995-4920"
 - family-names: "Mehl"
   given-names: "Cedric"
-  orcid: "https://orcid.org/0000-0003-2293-9281
+  orcid: "https://orcid.org/0000-0003-2293-9281"
 title: "NNICE: Neural Network Inference in C made Easy"
 version: 1.0.0
 doi: 10.5281/zenodo.7645515
