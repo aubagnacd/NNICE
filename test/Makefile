@@ -3,7 +3,7 @@ all: main
 ROOT_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 INC_DIR := $(ROOT_DIR)/../include
 
-CXXFLAG := -DEIGEN_NO_DEBUG -march=native
+CXXFLAG := -DEIGEN_NO_DEBUG -march=native -fPIC
 INCLUDE := -I$(INC_DIR)
 ifneq ($(origin EIGEN_INC),undefined)
   INCLUDE := -I$(EIGEN_INC) $(INCLUDE)
