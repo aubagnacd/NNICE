@@ -1,3 +1,5 @@
+[![DOI](https://zenodo.org/badge/566262329.svg)](https://zenodo.org/badge/latestdoi/566262329)
+
 NNICE
 =======
 
