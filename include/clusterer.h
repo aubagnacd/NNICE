@@ -19,10 +19,10 @@ class Kmeans
     public:
         Kmeans() {};
         ~Kmeans();
-
+        
         void init(const string& model_path);
         int run(double* input_kmeans);
-                
+        
         void normalize_input(double* state_X);
         void read_input_norm(const string& filename);
         void apply_log_transform(double* state_X);
@@ -30,7 +30,7 @@ class Kmeans
 
         double log_threshold, bct_constant, rbct;
         int n_centroids, n_dims;
-    
+
     protected:
         typedef Eigen::MatrixXd Matrix;
         typedef Eigen::VectorXd Vector;

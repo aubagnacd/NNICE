@@ -6,7 +6,7 @@
 
 #######distutils: sources = [nnice_single.cpp, inference.cpp]
 
-from NNICE cimport Inference,SnglInference
+from NNICE cimport Inference,SnglInference,Kmeans
 from libcpp.string cimport string
 import numpy as np
 cimport numpy as np
@@ -26,6 +26,32 @@ cdef class pySnglInf(pyInference):
     def __cinit__(self):
         self.infptr = new SnglInference()
 
+    def read_norm_files(self, string normX_file, string normY_file):
+        self.infptr.read_input_norm(normX_file)
+        self.infptr.read_output_norm(normY_file)
+
     def run_ai(self, np.ndarray[double, ndim=1] inputs_array):
          result = self.infptr.run_ai(&inputs_array[0])
          return np.asarray(<np.double_t[:self.infptr.n_output_ai]> result)
+    
+    def normalize_inputs(self, np.ndarray[double, ndim=1] inputs_array):
+        self.infptr.normalize_input(&inputs_array[0])
+    
+    def denormalize_outputs(self, np.ndarray[double, ndim=1] inputs_array):
+        self.infptr.denormalize_output(&inputs_array[0])
+
+cdef class pyKmeans:
+    cdef Kmeans *kmptr
+
+    def __cinit__(self):
+        self.kmptr = new Kmeans()
+
+    def init(self, string model_path, string norm_file):
+        self.kmptr.init(model_path)
+        self.kmptr.read_input_norm(norm_file)
+
+    def run(self, np.ndarray[double, ndim=1] inputs_array):
+        return self.kmptr.run(&inputs_array[0])
+
+    def normalize(self, np.ndarray[double, ndim=1] inputs_array):
+        self.kmptr.normalize_input(&inputs_array[0])

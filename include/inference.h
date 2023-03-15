@@ -28,6 +28,11 @@ class Inference
         virtual double* run_ai(double* input_ai) {return nullptr;};
         virtual double* run_ai(double* input_ai, const size_t& size) {return nullptr;};
 
+        virtual void normalize_input(double* state_X) {};
+        virtual void denormalize_output(double* state_Y_norm) {};
+        virtual void read_input_norm(const string& filename) {};
+        virtual void read_output_norm(const string& filename) {};
+
         int n_input_ai;
         int n_output_ai;
         double log_threshold, bct_constant, rbct;
