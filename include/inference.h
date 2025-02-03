@@ -29,6 +29,7 @@ class Inference
         virtual double* run_ai(double* input_ai, const size_t& size) {return nullptr;};
 
         virtual void normalize_input(double* state_X) {};
+        virtual void normalize_output(double* state_Y) {};
         virtual void denormalize_output(double* state_Y_norm) {};
         virtual void read_input_norm(const string& filename) {};
         virtual void read_output_norm(const string& filename) {};
@@ -42,6 +43,7 @@ class Inference
         typedef Eigen::RowVectorXd RowVector;
         typedef Eigen::Map<Eigen::ArrayXd> MappedArray;
         typedef Eigen::ArrayXd NormArray;
+        typedef Eigen::Map<Eigen::MatrixXd> MappedMat;
 
         void read_kernel_bias(const string& path);
         void read_activations(const string& path);
@@ -61,6 +63,12 @@ class Inference
         virtual void AddTanh() {};
         virtual void AddId() {};
         virtual void AddSwish() {};
+        virtual void AddSigmoid() {};
+        virtual void AddReLUDerivative() {};
+        virtual void AddTanhDerivative() {};
+        virtual void AddIdDerivative() {};
+        virtual void AddSwishDerivative() {};
+        virtual void AddSigmoidDerivative() {}; 
 
         // Layer function pointer cannot be static (use of class attribute in function)
         virtual void Dense(size_t& i) {};

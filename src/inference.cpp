@@ -87,7 +87,8 @@ void Inference::read_kernel_bias(const string& path) {
     //
     // Loop over layers
     //
-    H5Eset_auto(NULL, NULL, NULL);
+    //H5Eset_auto(NULL, NULL, NULL);
+    H5Eset_auto(0, NULL, NULL);
     string layer_str = std::to_string(nlayer);
     grp_path = hidden_prefix+layer_str+"/"+hidden_prefix+layer_str;
     res2_path = res2_prefix+layer_str+"/"+res2_prefix+layer_str;
@@ -159,6 +160,7 @@ void Inference::read_kernel_bias(const string& path) {
         H5Dclose(dset);
         H5Gclose(grp);
     }
+    H5Fclose(h5Model);
 }
 
 void Inference::read_activations(const string& path) {
@@ -191,12 +193,20 @@ void Inference::read_activations(const string& path) {
             //
             if (act_func == "tanh") {
                 AddTanh();
+                AddTanhDerivative();
             } else if (act_func == "relu") {
                 AddReLU();
+                AddReLUDerivative();
             } else if (act_func == "swish") {
                 AddSwish();
-            } else {
+                AddSwishDerivative();
+            } else if (act_func == "sigmoid") {
+                AddSigmoid();
+                AddSigmoidDerivative();
+            } 
+            else {
                 AddId();
+                AddIdDerivative();
             }
         } else if (class_name == "ResidualBlock") {
             string act_func(layers[i]["config"]["activations"].GetString());
@@ -211,6 +221,9 @@ void Inference::read_activations(const string& path) {
             } else if (act_func == "swish") {
                 AddSwish();
                 AddSwish();
+            } else if (act_func == "sigmoid") {
+                AddSigmoid();
+                AddSigmoid();
             } else {
                 AddId();
                 AddId();

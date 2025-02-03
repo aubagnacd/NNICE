@@ -28,6 +28,8 @@ void SnglInference::propagateForward(MappedArray& input) {
 
 void SnglInference::AddLayer(size_t i) {
    neuronLayers.push_back(RowVector(i));
+   cacheLayers.push_back(RowVector(i));
+   deltas.push_back(RowVector(i));
 }
 
 void SnglInference::AddId() {
@@ -46,6 +48,30 @@ void SnglInference::AddSwish() {
     activationFunctions.push_back(swish);
 }
 
+void SnglInference::AddSigmoid() {
+    activationFunctions.push_back(sigmoid);
+}
+
+void SnglInference::AddIdDerivative() {
+    activationFunctionsDerivative.push_back(idDerivative);
+}
+
+void SnglInference::AddReLUDerivative() {
+    activationFunctionsDerivative.push_back(reLUDerivative);
+}
+
+void SnglInference::AddTanhDerivative() {
+    activationFunctionsDerivative.push_back(tanhDerivative);
+}
+
+void SnglInference::AddSwishDerivative() {
+    activationFunctionsDerivative.push_back(swishDerivative);
+}
+
+void SnglInference::AddSigmoidDerivative() {
+    activationFunctionsDerivative.push_back(sigmoidDerivative);
+}
+
 void SnglInference::AddDense() {
    layers.push_back(&SnglInference::Dense);
 }
@@ -56,11 +82,13 @@ void SnglInference::AddResBlock2() {
 
 void SnglInference::Dense(size_t& i) {
     neuronLayers[i] = neuronLayers[i - 1] * weights[i - 1] + bias[i-1];
+    cacheLayers[i] = neuronLayers[i - 1] * weights[i - 1] + bias[i-1];
     activationFunctions[i-1](neuronLayers[i]);
 }
 
 void SnglInference::ResBlock2(size_t& i) {
     neuronLayers[i] = neuronLayers[i - 1] * weights[i - 1] + bias[i-1] + neuronLayers[i - 2];
+    cacheLayers[i] = neuronLayers[i - 1] * weights[i - 1] + bias[i-1] + neuronLayers[i - 2];
     activationFunctions[i-1](neuronLayers[i]);
 }
 
@@ -105,9 +133,14 @@ void SnglInference::normalize_input(double* state_X) {
    input_vector = (input_vector - norm_param_X0)*norm_param_X1;
 }
 
+void SnglInference::normalize_output(double* state_Y) {
+   MappedArray output_vector(state_Y,n_output_ai);
+   output_vector = (output_vector - norm_param_Y0)/norm_param_Y1;
+}
+
 void SnglInference::denormalize_output(double* state_Y) {
-   MappedArray input_vector(state_Y,n_output_ai);
-   input_vector = (input_vector*norm_param_Y1) + norm_param_Y0;
+   MappedArray output_vector(state_Y,n_output_ai);
+   output_vector = (output_vector*norm_param_Y1) + norm_param_Y0;
 }
 
 void SnglInference::apply_log_transform(double* state_X) {
@@ -132,4 +165,65 @@ void SnglInference::apply_bct_transform(double* state_X) {
 void SnglInference::inverse_bct_transform(double* state_Y) {
    MappedArray input_vector(state_Y,n_output_ai);
    input_vector = (bct_constant * input_vector + 1.0).pow(rbct);
+}
+
+
+
+void SnglInference::propagateBackward(MappedArray& input,MappedArray& output_expected_vector, double learning_rate)
+{
+    // calculate the errors made by neurons of last layer
+    MappedArray output_vector(neuronLayers.back().data(),n_output_ai);
+
+    RowVector output_error = error_function_derivative(output_vector,output_expected_vector);
+
+    RowVector output_derivative = cacheLayers.back();
+    activationFunctionsDerivative[0](output_derivative);
+
+    RowVector output_delta = output_error.cwiseProduct(output_derivative);
+    deltas[topology.size()-1] = output_delta;
+
+    for (int i = topology.size()-2; i >= 0; i--) {
+        Matrix map = Eigen::Map<Matrix>(weights[i].data(), topology[i], topology[i+1]);
+        Matrix next_weights = map;
+        RowVector next_delta = deltas[i+1];
+
+        auto hidden_error =  next_weights * next_delta.transpose();
+        RowVector hidden_derivative = cacheLayers[i];
+        activationFunctionsDerivative[i](hidden_derivative);
+        RowVector hidden_delta = hidden_error.transpose().cwiseProduct(hidden_derivative);
+        deltas[i] = hidden_delta;
+    }
+    for (size_t i = 0; i < topology.size()-1; i++) {
+        if (i == 0) {
+            MappedArray  input_=input;
+            update_weights(i, input_, learning_rate);
+        }
+        else {
+            MappedArray  input_(neuronLayers[i].data(),neuronLayers[i].size());
+            update_weights(i, input_, learning_rate);
+        }
+    }
+}
+
+void SnglInference::train(double* inputs,double* target_outputs,             
+            double learning_rate, int epochs,
+            size_t size) {
+
+    for (size_t epoch = 0; epoch < epochs; ++epoch) {
+        double epoch_loss = 0.0;
+        for (size_t i = 0; i < size; ++i) {
+            MappedArray input(&inputs[i*n_input_ai],n_input_ai);
+            MappedArray target_output(&target_outputs[i*n_output_ai],n_output_ai);
+
+            propagateForward(input);
+            MappedArray output(neuronLayers.back().data(),n_output_ai);
+            double loss = error_function(output, target_output);
+            epoch_loss += loss;
+
+            propagateBackward(input, target_output, learning_rate);
+        }
+        epoch_loss /= size;
+            
+        std::cout << "Epoch " << epoch + 1 << "/" << epochs << " - Loss: " << epoch_loss << std::endl;
+    }
 }

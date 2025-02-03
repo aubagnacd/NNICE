@@ -46,6 +46,10 @@ void VectInference::AddSwish() {
     activationFunctions.push_back(swish);
 }
 
+void VectInference::AddSigmoid() {
+    activationFunctions.push_back(sigmoid);
+}
+
 void VectInference::AddDense() {
     layers.push_back(&VectInference::Dense);
 }

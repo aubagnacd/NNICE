@@ -32,13 +32,15 @@ class VectInference : public Inference
         void AddTanh();
         void AddId();
         void AddSwish();
+        void AddSigmoid();
 
         // activation functions should be static, no need to have 1 per object
         static void reLU(Matrix& input) {input = input.cwiseMax(0);};
         static void tanh(Matrix& input) {input = input.array().tanh();};
         static void id(Matrix& input) {};
         static void swish(Matrix& input) {input = input.array() / (1.0 + Eigen::exp(-input.array()));};
-        
+        static void sigmoid(Matrix& input) {input = 1.0 / (1.0 + Eigen::exp(-input.array()));};
+       
         // Layer function pointer cannot be static (use of class attribute in function)
         void Dense(size_t& i);
         void ResBlock2(size_t& i);
