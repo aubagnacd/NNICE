@@ -87,7 +87,7 @@ void Inference::read_kernel_bias(const string& path) {
     //
     // Loop over layers
     //
-    H5Eset_auto(NULL, NULL, NULL);
+    H5Eset_auto2(H5E_DEFAULT, nullptr, nullptr);
     string layer_str = std::to_string(nlayer);
     grp_path = hidden_prefix+layer_str+"/"+hidden_prefix+layer_str;
     res2_path = res2_prefix+layer_str+"/"+res2_prefix+layer_str;
@@ -217,6 +217,199 @@ void Inference::read_activations(const string& path) {
             }
         }
     }
+}
+
+void Inference::ImportNN_pt_custom(const string& model_path)
+{
+    input_layer = "";
+    hidden_prefix = "dense_";
+    res2_prefix = "";
+    output_layer = "";
+    //
+    read_kernel_bias_act_pt_custom(model_path);
+    //
+    n_input_ai = topology[0];
+    n_output_ai = topology.back();
+    log_threshold = 1.0; // SetLogThreshold and SetBctCst TBD
+    bct_constant = 1.0;
+    rbct = 1.0 / bct_constant;
+    // for debug purpose
+    // for (size_t i = 0; i < topology.size(); i++) {
+    //     cout << "topology[" << i << "] = " << topology[i] << endl;
+    //     //
+    //     if (i > 0) {
+    //         cout << "bias[" << i - 1 << "] = " << *bias[i-1] << endl;
+    //         cout << "weights[" << i - 1 << "] = " << (*weights[i-1]).transpose() << endl;
+    //     }
+    //     cout << endl << endl;
+    // }
+}
+
+void Inference::ImportNN_pt_custom(const string& model_path, const string& input_layer_name, const string& hidden_layers_prefix, const string& resblock_prefix, const string& output_layer_name)
+{
+    input_layer = input_layer_name;
+    hidden_prefix = hidden_layers_prefix;
+    res2_prefix = resblock_prefix;
+    output_layer = output_layer_name;
+    //
+    read_kernel_bias_act_pt_custom(model_path);
+    //
+    n_input_ai = topology[0];
+    n_output_ai = topology.back();
+    log_threshold = 1.0; // SetLogThreshold and SetBctCst TBD
+    bct_constant = 1.0;
+    rbct = 1.0 / bct_constant;
+}
+
+void Inference::read_kernel_bias_act_pt_custom(const string& path) {
+    hid_t h5Model, grp, dset;
+    //
+    // Open .h5 file
+    //
+	try {
+        h5Model = H5Fopen(path.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
+    }
+    catch (...) {
+        string msg("Could not open HDF5 file containing NN\n");
+        throw msg;
+    }
+    //
+    // Input layer
+    //
+    size_t nlayer = 1;
+    string grp_path;
+    string res2_path;
+    if (input_layer!="") { // Hard-coded as dense layer for now
+        grp_path = input_layer;
+        grp = H5Gopen(h5Model,grp_path.c_str(),H5P_DEFAULT);
+
+        AddDense();
+
+        dset = H5Dopen(grp,"kernel:0",H5P_DEFAULT);
+        add_weight_from_dataset(dset);
+        H5Dclose(dset);
+
+        dset = H5Dopen(grp,"bias:0",H5P_DEFAULT);
+        add_bias_from_dataset(dset);
+        H5Dclose(dset);
+        H5Gclose(grp);
+    }
+    //
+    // Loop over layers
+    //
+    H5Eset_auto2(H5E_DEFAULT, nullptr, nullptr);
+    string layer_str = std::to_string(nlayer);
+    grp_path = hidden_prefix+layer_str;
+    res2_path = res2_prefix+layer_str;
+    bool has_more = true;
+    while (has_more) {
+        if (H5Lexists(h5Model,grp_path.c_str(),H5P_DEFAULT) > 0) { // Dense layer
+            grp = H5Gopen(h5Model,grp_path.c_str(),H5P_DEFAULT);
+
+            // Read activation
+            std::string activation = read_string_attribute(grp, "activation");
+
+            dset = H5Dopen(grp,"kernel:0",H5P_DEFAULT);
+            add_weight_from_dataset(dset);
+            H5Dclose(dset);
+
+            dset = H5Dopen(grp,"bias:0",H5P_DEFAULT);
+            add_bias_from_dataset(dset);
+            H5Dclose(dset);
+            H5Gclose(grp);
+
+            AddDense();
+            set_activation(activation);
+        } else if (H5Lexists(h5Model,res2_path.c_str(),H5P_DEFAULT) > 0) { // ResBlock (1 dense + 1 res2)
+            string local_path = res2_path + "/hidden_unit_0"; // add a dense layer
+            grp = H5Gopen(h5Model,local_path.c_str(),H5P_DEFAULT);
+
+            // Read activation
+            std::string activation = read_string_attribute(grp, "activation");
+
+            dset = H5Dopen(grp,"kernel:0",H5P_DEFAULT);
+            add_weight_from_dataset(dset);
+            H5Dclose(dset);
+
+            dset = H5Dopen(grp,"bias:0",H5P_DEFAULT);
+            add_bias_from_dataset(dset);
+            H5Dclose(dset);
+            H5Gclose(grp);
+            AddDense();
+
+            local_path = res2_path + "/hidden_unit_1"; // add a res2 layer
+            grp = H5Gopen(h5Model,local_path.c_str(),H5P_DEFAULT);
+
+            dset = H5Dopen(grp,"kernel:0",H5P_DEFAULT);
+            add_weight_from_dataset(dset);
+            H5Dclose(dset);
+
+            dset = H5Dopen(grp,"bias:0",H5P_DEFAULT);
+            add_bias_from_dataset(dset);
+            H5Dclose(dset);
+            H5Gclose(grp);
+            AddResBlock2();
+            set_activation(activation);
+        } else { // neither Dense nor ResBlock --> end search
+            has_more = false;
+        }
+
+        nlayer+=1;
+        layer_str = std::to_string(nlayer);
+        grp_path = hidden_prefix+layer_str;
+        res2_path = res2_prefix+layer_str;
+    }
+    //
+    // Output layer
+    //
+    if (output_layer != "") { // Hard-coded as dense layer for now
+        string grp_path = output_layer;
+        grp = H5Gopen(h5Model,grp_path.c_str(),H5P_DEFAULT);
+
+        dset = H5Dopen(grp,"kernel:0",H5P_DEFAULT);
+        add_weight_from_dataset(dset);
+        H5Dclose(dset);
+
+        AddDense();
+
+        dset = H5Dopen(grp,"bias:0",H5P_DEFAULT);
+        add_bias_from_dataset(dset);
+        H5Dclose(dset);
+        H5Gclose(grp);
+    }
+}
+
+std::string Inference::read_string_attribute(hid_t group, const std::string& attr_name)
+{
+    if (H5Aexists(group, attr_name.c_str()) <= 0)
+        return "identity";  // default fallback
+
+    hid_t attr = H5Aopen(group, attr_name.c_str(), H5P_DEFAULT);
+    hid_t type = H5Aget_type(attr);
+    hid_t space = H5Aget_space(attr);
+
+    // Get string size
+    size_t size = H5Tget_size(type);
+    std::string value(size, '\0');
+
+    H5Aread(attr, type, &value[0]);
+
+    // Remove possible trailing nulls
+    value.erase(value.find('\0'));
+
+    H5Sclose(space);
+    H5Tclose(type);
+    H5Aclose(attr);
+
+    return value;
+}
+
+void Inference::set_activation(const std::string& act)
+{
+    if (act == "ReLU")       AddReLU();
+    else if (act == "Tanh")  AddTanh();
+    else if (act == "Swish") AddSwish();
+    else                     AddId();
 }
 
 void Inference::add_bias_from_dataset(hid_t& h5_dset) {
