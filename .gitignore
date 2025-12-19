@@ -2,3 +2,4 @@ test/*.o
 lib/libNNICE.a
 test/mainKmeans
 test/mainProgram
+test/mainProgramPt

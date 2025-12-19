@@ -49,6 +49,7 @@ void Inference::ImportNN(const string& model_path, const string& activation_path
     log_threshold = 1.0; // SetLogThreshold and SetBctCst TBD
     bct_constant = 1.0;
     rbct = 1.0 / bct_constant;
+
 }
 
 void Inference::read_kernel_bias(const string& path) {
@@ -262,7 +263,7 @@ void Inference::ImportNN_pt_custom(const string& model_path, const string& input
 }
 
 void Inference::read_kernel_bias_act_pt_custom(const string& path) {
-    hid_t h5Model, grp, dset;
+    hid_t h5Model, grp, grp_resblock, dset;
     //
     // Open .h5 file
     //
@@ -283,7 +284,11 @@ void Inference::read_kernel_bias_act_pt_custom(const string& path) {
         grp_path = input_layer;
         grp = H5Gopen(h5Model,grp_path.c_str(),H5P_DEFAULT);
 
+        // Read activation
+        std::string activation = read_string_attribute(grp, "activation");
+
         AddDense();
+        set_activation(activation);
 
         dset = H5Dopen(grp,"kernel:0",H5P_DEFAULT);
         add_weight_from_dataset(dset);
@@ -325,7 +330,8 @@ void Inference::read_kernel_bias_act_pt_custom(const string& path) {
             grp = H5Gopen(h5Model,local_path.c_str(),H5P_DEFAULT);
 
             // Read activation
-            std::string activation = read_string_attribute(grp, "activation");
+            grp_resblock = H5Gopen(h5Model,res2_path.c_str(),H5P_DEFAULT);
+            std::string activation = read_string_attribute(grp_resblock, "activation");
 
             dset = H5Dopen(grp,"kernel:0",H5P_DEFAULT);
             add_weight_from_dataset(dset);
