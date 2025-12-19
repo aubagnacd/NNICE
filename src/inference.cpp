@@ -349,6 +349,8 @@ void Inference::read_kernel_bias_act_pt_custom(const string& path) {
             H5Dclose(dset);
             H5Gclose(grp);
             AddResBlock2();
+
+            set_activation(activation);
             set_activation(activation);
         } else { // neither Dense nor ResBlock --> end search
             has_more = false;
@@ -366,11 +368,15 @@ void Inference::read_kernel_bias_act_pt_custom(const string& path) {
         string grp_path = output_layer;
         grp = H5Gopen(h5Model,grp_path.c_str(),H5P_DEFAULT);
 
+        // Read activation
+        std::string activation = read_string_attribute(grp, "activation");
+
         dset = H5Dopen(grp,"kernel:0",H5P_DEFAULT);
         add_weight_from_dataset(dset);
         H5Dclose(dset);
 
         AddDense();
+        set_activation(activation);
 
         dset = H5Dopen(grp,"bias:0",H5P_DEFAULT);
         add_bias_from_dataset(dset);
@@ -388,27 +394,45 @@ std::string Inference::read_string_attribute(hid_t group, const std::string& att
     hid_t type = H5Aget_type(attr);
     hid_t space = H5Aget_space(attr);
 
-    // Get string size
-    size_t size = H5Tget_size(type);
-    std::string value(size, '\0');
-
-    H5Aread(attr, type, &value[0]);
-
-    // Remove possible trailing nulls
-    value.erase(value.find('\0'));
+    std::string value;
+    
+    // Check if it's a variable-length string
+    if (H5Tis_variable_str(type)) {
+        char* rdata = nullptr;
+        H5Aread(attr, type, &rdata);
+        if (rdata) {
+            value = std::string(rdata);
+            H5free_memory(rdata);  // Must free variable-length string
+        }
+    } else {
+        // Fixed-length string
+        size_t size = H5Tget_size(type);
+        std::vector<char> buffer(size + 1, '\0');  // +1 for safety
+        H5Aread(attr, type, buffer.data());
+        value = std::string(buffer.data());
+        
+        // Clean up: remove trailing nulls and spaces
+        value.erase(std::find_if(value.rbegin(), value.rend(), 
+                    [](unsigned char ch) { return ch != '\0' && ch != ' '; }).base(), 
+                    value.end());
+    }
 
     H5Sclose(space);
     H5Tclose(type);
     H5Aclose(attr);
-
+    
     return value;
 }
 
+
 void Inference::set_activation(const std::string& act)
 {
-    if (act == "ReLU")       AddReLU();
-    else if (act == "Tanh")  AddTanh();
-    else if (act == "Swish") AddSwish();
+    std::string act_lower = act;
+    std::transform(act_lower.begin(), act_lower.end(), act_lower.begin(), ::tolower);
+
+    if (act_lower == "relu")       AddReLU();
+    else if (act_lower == "tanh")  AddTanh();
+    else if (act_lower == "swish") AddSwish();
     else                     AddId();
 }
 
