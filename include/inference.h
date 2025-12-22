@@ -22,8 +22,14 @@ class Inference
         Inference() {};
         ~Inference();
         
+        // Imports in keras h5 json files
         void ImportNN(const string& model_path, const string& activation_path);
         void ImportNN(const string& model_path, const string& activation_path, const string& input_layer_name, const string& hidden_layers_prefix, const string& resblock_prefix, const string& output_layer_name);
+
+        // Imports in custom h5 format (see ai_reacting_flows)
+        void ImportNN_pt_custom(const string& model_path);
+        void ImportNN_pt_custom(const string& model_path, const string& input_layer_name, const string& hidden_layers_prefix, const string& resblock_prefix, const string& output_layer_name);
+
 
         virtual double* run_ai(double* input_ai) {return nullptr;};
         virtual double* run_ai(double* input_ai, const size_t& size) {return nullptr;};
@@ -45,6 +51,10 @@ class Inference
 
         void read_kernel_bias(const string& path);
         void read_activations(const string& path);
+
+        void read_kernel_bias_act_pt_custom(const string& path);
+        std::string read_string_attribute(hid_t group, const std::string& attr_name);
+        void set_activation(const std::string& act);
 
         // Layers names
         string input_layer, hidden_prefix, res2_prefix, output_layer;
