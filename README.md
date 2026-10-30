@@ -13,6 +13,8 @@ Note:
 # Current functionalities
 So far, *NNICE* only reads MLP and ResNet with dense layers. The input format is also specific but it is described further in the *NN nomenclature* section and can be obtained natively from TensorFlow.
 
+*NNICE* also reads the *per-species* model format produced by `ai_reacting_flows`: a single HDF5 file holding one independent sub-network per species in groups named `species_0`, `species_1`, ... Every sub-network shares the same input vector and predicts a single scalar; the global output is the concatenation of the sub-network outputs, in species order. See the *Per-species models* section below.
+
 # Requirements
 *NNICE* relies heavily on [EIGEN](https://gitlab.com/libeigen/eigen/-/releases/3.4.0) (3.4.0) for the matrix product and element-wise activation functions. Its input file parser relies on [HDF5](https://github.com/HDFGroup/hdf5) (1.10.5) and [Rapidjson](https://github.com/Tencent/rapidjson) (1.1.0). The versions indicated are those that have been tested and are therefore recommended if you can choose which version to use. If you wish to use NNICE in code already using these libraries, please be consistent with your code. NNICE is expected to work correctly with any more recent version of these libraries. Unfortunately, verification of the minimum version of each library has not yet been carried out, but you can also try using an older version.
 
@@ -90,3 +92,30 @@ my_nn->ImportNN("path/to_model/model.h5","path/to_model/architecture.json", "inp
 result_ptr = my_nn->run_ai(input_ptr); # single inference
 vresult_ptr = my_vect_nn->run_ai(input_ptr, batch_size); # vectorized inference
 ```
+
+# Per-species models
+A per-species HDF5 file contains, at its root, one group per species named `species_0`,
+`species_1`, ... Each group holds a regular sub-network (same nomenclature as above:
+`dense_layer_<n>` / `hidden_residual_block_<n>` / `output_layer`, with an `activation`
+attribute on each layer group). Every sub-network takes the full input vector and outputs
+a single scalar. `SnglInferencePerSpecies` evaluates all sub-networks on the same input
+and returns the concatenated output (size = number of `species_*` groups).
+
+```cpp
+#include "nnice_perspecies.h"
+
+SnglInferencePerSpecies* net = new SnglInferencePerSpecies();
+net->ImportNN_pt_custom_perspecies("MODEL/ann_models/model_weights_cluster0.h5");
+net->read_input_norm("MODEL/ann_models/norm_param_X_cluster0.dat");   // n_input_ai lines
+net->read_output_norm("MODEL/ann_models/norm_param_Y_cluster0.dat");  // n_output_ai lines
+
+net->normalize_input(state_X);
+double* state_Y = net->run_ai(state_X);
+net->denormalize_output(state_Y);
+```
+
+`SnglInferencePerSpecies` derives from `SnglInference`, so normalization, denormalization
+and the log / Box-Cox data transforms behave exactly as for a single "reduced" network.
+`SnglInferencePerSpecies::is_perspecies_file(path)` returns `true` when a file uses this
+format (presence of a `species_0` group), which lets calling code auto-select the reader.
+The `test/mainPerSpecies` program built by the Makefile is a minimal end-to-end checker.

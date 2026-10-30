@@ -55,12 +55,14 @@ void SnglInference::AddResBlock2() {
 }
 
 void SnglInference::Dense(size_t& i) {
-    neuronLayers[i] = neuronLayers[i - 1] * weights[i - 1] + bias[i-1];
+    neuronLayers[i].noalias() = neuronLayers[i - 1] * weights[i - 1];
+    neuronLayers[i] += bias[i-1];
     activationFunctions[i-1](neuronLayers[i]);
 }
 
 void SnglInference::ResBlock2(size_t& i) {
-    neuronLayers[i] = neuronLayers[i - 1] * weights[i - 1] + bias[i-1] + neuronLayers[i - 2];
+    neuronLayers[i].noalias() = neuronLayers[i - 1] * weights[i - 1];
+    neuronLayers[i] += bias[i-1] + neuronLayers[i - 2];
     activationFunctions[i-1](neuronLayers[i]);
 }
 
@@ -73,7 +75,11 @@ void SnglInference::read_input_norm(const string& filename) {
    std::ifstream fX(filename);
    for (int i = 0; i < n_input_ai; i++) {
       for (int j = 0; j < 2; j++) fX >> norm_param_X[j][i];
-      norm_param_X[1][i] = 1.0 /(sqrt(norm_param_X[1][i]));
+      // +1e-7 matches the div-by-zero guard ai_reacting_flows applies at
+      // train/test time (NN_manager.py, NN_testing.py, cfd_snapshot_testing.py:
+      // "std + 1e-7"); omitting it here made NNICE diverge from the ARF
+      // PyTorch reference by ~1e-7 relative on every species.
+      norm_param_X[1][i] = 1.0 /(sqrt(norm_param_X[1][i]) + 1.0e-7);
    }
    //
    norm_param_X0 = Eigen::Map<NormArray>(norm_param_X[0],n_input_ai);
@@ -91,7 +97,8 @@ void SnglInference::read_output_norm(const string& filename) {
    std::ifstream fY(filename);
    for (int i = 0; i < n_output_ai; i++) {
       for (int j = 0; j < 2; j++) fY >> norm_param_Y[j][i];
-      norm_param_Y[1][i] = sqrt(norm_param_Y[1][i]);
+      // See matching comment in read_input_norm above.
+      norm_param_Y[1][i] = sqrt(norm_param_Y[1][i]) + 1.0e-7;
    }
    //
    norm_param_Y0 = Eigen::Map<NormArray>(norm_param_Y[0],n_output_ai);

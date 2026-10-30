@@ -10,34 +10,50 @@ Kmeans::~Kmeans()
 
 void Kmeans::init(const string &model_path)
 {
+    // File layout: one line per input variable, one column per cluster.
+    // Two formats exist:
+    //   - legacy (pandas): first line is the cluster-index header "0 1 ... n-1"
+    //   - ARF (np.savetxt): no header, data starts on the first line
+    // The header is detected and skipped; it must NOT be skipped blindly,
+    // otherwise the first variable (T) is lost and all rows shift by one.
+    // (No std::vector here: keeps libNNICE.a linkable against older libstdc++.)
     std::ifstream fX(model_path);
-    std::string line, item;
+    if (!fX) throw std::runtime_error("Kmeans::init: cannot open " + model_path);
+    std::string line;
+    double tmp;
     n_centroids = 0;
     n_dims = 0;
+    bool has_header = false;
     //
+    // Pass 1: count data lines and columns, detect header
     while(getline(fX, line)) {
-        n_dims++;
-        //
-        if (n_dims==1) {
-            std::stringstream ss(line);
-            while( ss >> item ) n_centroids++;
+        std::stringstream ss(line);
+        int n_cols = 0;
+        bool is_header = true;
+        while( ss >> tmp ) {
+            if (tmp != double(n_cols)) is_header = false;
+            n_cols++;
         }
+        if (n_cols == 0) {
+            if (ss.eof()) continue; // blank line
+            throw std::runtime_error("Kmeans::init: non-numeric line in " + model_path);
+        }
+        if (n_dims == 0 && !has_header && is_header) { has_header = true; n_centroids = n_cols; continue; }
+        if (n_centroids == 0) n_centroids = n_cols;
+        if (n_cols != n_centroids)
+            throw std::runtime_error("Kmeans::init: inconsistent number of columns in " + model_path);
+        n_dims++;
     }
-    n_dims--;
     fX.clear();
     fX.seekg(0);
     //
+    // Pass 2: read values
     centroids.resize(n_dims, n_centroids);
-    //
-    getline(fX, line); // skip first line
-    double tmp;
+    if (has_header)
+        for (int j = 0; j < n_centroids; j++) fX >> tmp;
     for (int i = 0; i < n_dims; i++)
-    {
-        for (int j = 0; j < n_centroids; j++) {
-            fX >> tmp;
-            centroids.row(i).col(j) << tmp;
-        }
-    }
+        for (int j = 0; j < n_centroids; j++)
+            fX >> centroids(i, j);
     // cout << centroids << endl; // for debug purpose
     // cout << "n_centroids = " << n_centroids << endl; // for debug purpose
     // cout << "n_dims = " << n_dims << endl; // for debug purpose

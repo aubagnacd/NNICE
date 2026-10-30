@@ -35,7 +35,7 @@ class VectInference : public Inference
 
         // activation functions should be static, no need to have 1 per object
         static void reLU(Matrix& input) {input = input.cwiseMax(0);};
-        static void tanh(Matrix& input) {input = input.array().tanh();};
+        static void tanh(Matrix& input) {input = 1.0 - 2.0 / ((2.0 * input.array()).exp() + 1.0);}; // see nnice_single.h
         static void id(Matrix& input) {};
         static void swish(Matrix& input) {input = input.array() / (1.0 + Eigen::exp(-input.array()));};
         

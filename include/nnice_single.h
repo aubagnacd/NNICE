@@ -40,7 +40,10 @@ class SnglInference : public Inference
 
         // activation functions should be static, no need to have 1 per object
         static void reLU(RowVector& input) {input = input.cwiseMax(0);};
-        static void tanh(RowVector& input) {input = input.array().tanh();};
+        // tanh(x) = 1 - 2/(exp(2x)+1) : Eigen 3.4 only vectorizes tanh for float, the
+        // double version falls back to scalar std::tanh (~6x slower). exp is vectorized
+        // for double; max abs error vs std::tanh ~3e-16, and saturates cleanly to +-1.
+        static void tanh(RowVector& input) {input = 1.0 - 2.0 / ((2.0 * input.array()).exp() + 1.0);};
         static void id(RowVector& input) {};
         static void swish(RowVector& input) {input = input.array() / (1.0 + Eigen::exp(-input.array()));};
 
@@ -50,6 +53,8 @@ class SnglInference : public Inference
         
         // function for forward propagation of data
         void propagateForward(MappedArray& input);
+
+        friend class SnglInferencePerSpecies; // fused per-species path reads sub-net weights
       
         std::vector<RowVector, Eigen::aligned_allocator<RowVector>> neuronLayers; // stores the different layers of out network
         std::vector<activ_ptr> activationFunctions;

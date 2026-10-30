@@ -25,8 +25,10 @@ main:
 	$(CXX) -O3 $(CXXFLAG) $(INCLUDE) -c ../src/clusterer.cpp
 	$(CXX) -O3 $(CXXFLAG) $(INCLUDE) -c ../src/vectorized.cpp
 	$(CXX) -O3 $(CXXFLAG) $(INCLUDE) -c ../src/nnice_single.cpp
-	$(CXX) -O3 $(CXXFLAG) $(INCLUDE) $(LFLAG) -o mainProgram main.cpp inference.o clusterer.o vectorized.o nnice_single.o $(LIB)
-	$(CXX) -O3 $(CXXFLAG) $(INCLUDE) $(LFLAG) -o mainProgramPt main_pt_parser.cpp inference.o clusterer.o vectorized.o nnice_single.o $(LIB)
+	$(CXX) -O3 $(CXXFLAG) $(INCLUDE) -c ../src/nnice_perspecies.cpp
+	$(CXX) -O3 $(CXXFLAG) $(INCLUDE) $(LFLAG) -o mainProgram main.cpp inference.o clusterer.o vectorized.o nnice_single.o nnice_perspecies.o $(LIB)
+	$(CXX) -O3 $(CXXFLAG) $(INCLUDE) $(LFLAG) -o mainProgramPt main_pt_parser.cpp inference.o clusterer.o vectorized.o nnice_single.o nnice_perspecies.o $(LIB)
+	$(CXX) -O3 $(CXXFLAG) $(INCLUDE) $(LFLAG) -o mainPerSpecies main_perspecies.cpp inference.o clusterer.o vectorized.o nnice_single.o nnice_perspecies.o $(LIB)
 	$(CXX) -O3 $(CXXFLAG) $(INCLUDE) $(LFLAG) -o mainKmeans main_kmeans.cpp clusterer.o $(LIB)
 
 debug:
@@ -34,9 +36,11 @@ debug:
 	$(CXX) -g $(CXXFLAG) $(INCLUDE) -c ../src/clusterer.cpp
 	$(CXX) -g $(CXXFLAG) $(INCLUDE) -c ../src/vectorized.cpp
 	$(CXX) -g $(CXXFLAG) $(INCLUDE) -c ../src/nnice_single.cpp
-	$(CXX) -g $(CXXFLAG) $(INCLUDE) $(LFLAG) -o mainProgram main.cpp inference.o clusterer.o vectorized.o nnice_single.o $(LIB)
-	$(CXX) -g $(CXXFLAG) $(INCLUDE) $(LFLAG) -o mainProgramPt main_pt_parser.cpp inference.o clusterer.o vectorized.o nnice_single.o $(LIB)
+	$(CXX) -g $(CXXFLAG) $(INCLUDE) -c ../src/nnice_perspecies.cpp
+	$(CXX) -g $(CXXFLAG) $(INCLUDE) $(LFLAG) -o mainProgram main.cpp inference.o clusterer.o vectorized.o nnice_single.o nnice_perspecies.o $(LIB)
+	$(CXX) -g $(CXXFLAG) $(INCLUDE) $(LFLAG) -o mainProgramPt main_pt_parser.cpp inference.o clusterer.o vectorized.o nnice_single.o nnice_perspecies.o $(LIB)
+	$(CXX) -g $(CXXFLAG) $(INCLUDE) $(LFLAG) -o mainPerSpecies main_perspecies.cpp inference.o clusterer.o vectorized.o nnice_single.o nnice_perspecies.o $(LIB)
 	$(CXX) -g $(CXXFLAG) $(INCLUDE) $(LFLAG) -o mainKmeans main_kmeans.cpp clusterer.o $(LIB)
 
 clean:
-	rm -f mainProgram mainKmeans *.o
+	rm -f mainProgram mainProgramPt mainPerSpecies mainKmeans *.o
